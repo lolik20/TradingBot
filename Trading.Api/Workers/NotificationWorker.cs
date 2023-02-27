@@ -8,6 +8,7 @@ using Trading.BL.Interfaces;
 using Trading.Controllers;
 using Newtonsoft.Json;
 using Trading.Common.ResponseModels;
+using Microsoft.Extensions.Configuration;
 
 namespace Trading.Workers
 {
@@ -17,12 +18,16 @@ namespace Trading.Workers
         private readonly IByBitService _byBitService;
         private readonly IGateService _gateService;
         private readonly ITelegramService _telegramService;
-        public NotificationWorker(IBinanceService binanceService, IByBitService byBitService, IGateService gateService, ITelegramService telegramService)
+        private readonly IConfiguration _configuration;
+        private readonly List<string> _filter;
+        public NotificationWorker(IBinanceService binanceService, IByBitService byBitService, IGateService gateService, ITelegramService telegramService, IConfiguration configuration)
         {
             _binanceService = binanceService;
             _byBitService = byBitService;
             _gateService = gateService;
             _telegramService = telegramService;
+            _configuration = configuration;
+            _filter = configuration.GetValue<string>("Filter").Split(',').ToList();
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -44,6 +49,7 @@ namespace Trading.Workers
 
                 var prices = symbols.Select(symbol =>
                 {
+                    
                     var binance = binanceResult.First(x => x.symbol == symbol);
                     var bybit = bybitResult.result.list.First(x => x.symbol == symbol);
                     var gate = gateResult.First(x => x.currency_pair == symbol);
@@ -103,14 +109,16 @@ namespace Trading.Workers
                         SellExchange = sellExchange,
                         Spread = spread
                     };
+                    
                 });
+                prices = prices.Where(x => !_filter.Any(t => x.Symbol.Contains(t)));
                 var bestSpreadPair = prices.OrderByDescending(p => p.Spread).FirstOrDefault();
                 if (bestSpreadPair.Spread > 2m)
                 {
                     Console.WriteLine("Нашли спред");
                     await _telegramService.SendMessage(bestSpreadPair);
                 }
-                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken).ContinueWith(x => { });
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).ContinueWith(x => { });
             }
         }
     }
