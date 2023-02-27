@@ -32,9 +32,12 @@ namespace Trading
             services.AddSingleton<IBinanceService, BinanceService>();
             services.AddSingleton<IByBitService, ByBitService>();
             services.AddSingleton<IGateService, GateService>();
+            services.AddSingleton<IHuobiService, HuobiService>();
             services.AddHttpClient<IBinanceService, BinanceService>();
             services.AddHttpClient<IByBitService, ByBitService>();
             services.AddHttpClient<IGateService, GateService>();
+            services.AddHttpClient<IHuobiService, HuobiService>();
+
             services.AddTransient<ITelegramService, TelegramService>();
             services.AddSingleton<IHostedService, NotificationWorker>();
 

@@ -18,10 +18,12 @@ namespace Trading.Workers
         private readonly IByBitService _byBitService;
         private readonly IGateService _gateService;
         private readonly ITelegramService _telegramService;
+        private readonly IHuobiService _huobiService;
         private readonly IConfiguration _configuration;
         private readonly List<string> _filter;
-        public NotificationWorker(IBinanceService binanceService, IByBitService byBitService, IGateService gateService, ITelegramService telegramService, IConfiguration configuration)
+        public NotificationWorker(IBinanceService binanceService, IByBitService byBitService, IGateService gateService, ITelegramService telegramService, IConfiguration configuration, IHuobiService huobiService)
         {
+            _huobiService = huobiService;
             _binanceService = binanceService;
             _byBitService = byBitService;
             _gateService = gateService;
@@ -36,24 +38,26 @@ namespace Trading.Workers
                 var binanceTask = _binanceService.GetTickers();
                 var bybitTask = _byBitService.GetTickers();
                 var gateTask = _gateService.GetTickers();
-
+                //var huobiTask = _huobiService.GetTickers();
                 await Task.WhenAll(binanceTask, bybitTask, gateTask);
 
                 var binanceResult = binanceTask.Result;
                 var bybitResult = bybitTask.Result;
                 var gateResult = gateTask.Result;
+                //var huobiResult = huobiTask.Result;
 
                 var symbols = binanceResult.Select(x => x.symbol)
     .Intersect(bybitResult.result.list.Select(x => x.symbol))
     .Intersect(gateResult.Select(x => x.currency_pair));
+    //.Intersect(huobiResult.Select(x => x.symbol));
 
                 var prices = symbols.Select(symbol =>
                 {
-                    
+
                     var binance = binanceResult.First(x => x.symbol == symbol);
                     var bybit = bybitResult.result.list.First(x => x.symbol == symbol);
                     var gate = gateResult.First(x => x.currency_pair == symbol);
-
+                    //var huobi = huobiResult.First(x=>x.symbol==symbol);
                     var buyExchange = "";
                     var sellExchange = "";
                     decimal minPrice = decimal.MaxValue;
@@ -109,11 +113,11 @@ namespace Trading.Workers
                         SellExchange = sellExchange,
                         Spread = spread
                     };
-                    
+
                 });
                 prices = prices.Where(x => !_filter.Any(t => x.Symbol.Contains(t)));
                 var bestSpreadPair = prices.OrderByDescending(p => p.Spread).FirstOrDefault();
-                if (bestSpreadPair.Spread > 2m)
+                if (bestSpreadPair.Spread > 1.3m)
                 {
                     Console.WriteLine("Нашли спред");
                     await _telegramService.SendMessage(bestSpreadPair);
