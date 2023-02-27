@@ -16,9 +16,11 @@ namespace Trading.BL.Services
     public class TelegramService : ITelegramService
     {
         private TelegramBotClient _bot;
+        private List<string> _users;
         private readonly IConfigurationSection _urls;
         public TelegramService(IConfiguration configuration)
         {
+            _users = new List<string>() { "735342077", "662706906" };
             _bot = new TelegramBotClient("5460479060:AAFbjrFg4uVfZq4SMiSeua3HXP9Iah36P1A");
             _urls = configuration.GetSection("Urls");
         }
@@ -33,7 +35,11 @@ namespace Trading.BL.Services
                             InlineKeyboardButton.WithUrl(message.SellExchange,_urls[message.SellExchange].Replace("$token",message.Symbol.Replace("USDT",""))),
                         }
                     });
-            await _bot.SendTextMessageAsync("662706906", $"Пара: {message.Symbol}\nСпред: {Math.Round(message.Spread, 2)}%\nBinance: {message.BinancePrice}\nGate.io: {message.GatePrice}\nByBit: {message.ByBitPrice}\n{message.BuyExchange} -> {message.SellExchange}", replyMarkup: inlineKeyboard);
+            foreach (var user in _users)
+            {
+                await _bot.SendTextMessageAsync(user, $"Пара: {message.Symbol}\nСпред: {Math.Round(message.Spread, 2)}%\nBinance: {message.BinancePrice}\nGate.io: {message.GatePrice}\nByBit: {message.ByBitPrice}\n{message.BuyExchange} -> {message.SellExchange}", replyMarkup: inlineKeyboard);
+
+            }
         }
 
 

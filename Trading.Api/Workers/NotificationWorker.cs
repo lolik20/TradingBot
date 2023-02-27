@@ -117,7 +117,7 @@ namespace Trading.Workers
                 });
                 prices = prices.Where(x => !_filter.Any(t => x.Symbol.Contains(t)));
                 var bestSpreadPair = prices.OrderByDescending(p => p.Spread).FirstOrDefault();
-                if (bestSpreadPair.Spread > 1.3m)
+                if (bestSpreadPair.Spread > 1m)
                 {
                     Console.WriteLine("Нашли спред");
                     await _telegramService.SendMessage(bestSpreadPair);
